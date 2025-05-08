@@ -11,7 +11,7 @@ from PIL import Image, ImageEnhance
 import io
 import uuid
 import re
-from preset_generator import create_preset_from_prompt, match_prompt_to_preset
+from backend.preset_generator import create_preset_from_prompt, match_prompt_to_preset
 from dotenv import load_dotenv
 
 # Load environment variables
