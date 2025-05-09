@@ -16,7 +16,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/frontend/build/$1"
+      "dest": "/$1"
     }
   ],
   "env": {
