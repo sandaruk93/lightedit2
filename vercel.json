@@ -1,9 +1,8 @@
 {
   "version": 2,
-  "buildCommand": "cd frontend && GENERATE_SOURCEMAP=false CI=false npm run build",
+  "buildCommand": "chmod +x build.sh && ./build.sh",
   "outputDirectory": "frontend/build",
   "framework": "create-react-app",
-  "installCommand": "cd frontend && npm install --legacy-peer-deps",
   "env": {
     "CI": "false",
     "GENERATE_SOURCEMAP": "false"
