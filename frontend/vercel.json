@@ -1,1 +1,0 @@
-{"version":2,"buildCommand":"./build.sh","outputDirectory":"build","framework":"create-react-app","installCommand":"npm install --legacy-peer-deps","env":{"CI":"false","GENERATE_SOURCEMAP":"false"},"rewrites":[{"source":"/api/:path*","destination":"https://lightedit-backend.onrender.com/:path*"}]}
