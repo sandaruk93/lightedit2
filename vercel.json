@@ -1,16 +1,1 @@
-{
-  "version": 2,
-  "buildCommand": "chmod +x build.sh && ./build.sh",
-  "outputDirectory": "frontend/build",
-  "framework": "create-react-app",
-  "env": {
-    "CI": "false",
-    "GENERATE_SOURCEMAP": "false"
-  },
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "https://lightedit-backend.onrender.com/:path*"
-    }
-  ]
-} 
+{"version":2,"buildCommand":"cd frontend && chmod +x build.sh && ./build.sh","outputDirectory":"frontend/build","framework":"create-react-app","installCommand":"cd frontend && npm install --legacy-peer-deps","env":{"CI":"false","GENERATE_SOURCEMAP":"false"},"rewrites":[{"source":"/api/:path*","destination":"https://lightedit-backend.onrender.com/:path*"}]}
