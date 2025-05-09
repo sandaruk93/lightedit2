@@ -1,8 +1,13 @@
 {
   "version": 2,
-  "buildCommand": "CI=false npm run build",
+  "buildCommand": "GENERATE_SOURCEMAP=false CI=false npm run build",
   "outputDirectory": "build",
   "framework": "create-react-app",
+  "installCommand": "npm install --legacy-peer-deps",
+  "env": {
+    "CI": "false",
+    "GENERATE_SOURCEMAP": "false"
+  },
   "rewrites": [
     {
       "source": "/api/:path*",
