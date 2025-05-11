@@ -151,8 +151,7 @@ const StyleUploader: React.FC<StyleUploaderProps> = ({ onUploadComplete }) => {
       setResult(response.data);
       setShowSnackbar(true);
       
-      // Reset form
-      setFile(null);
+      // Don't reset form immediately
       setStyleDescription('');
       if (onUploadComplete) {
         onUploadComplete();
@@ -206,6 +205,13 @@ const StyleUploader: React.FC<StyleUploaderProps> = ({ onUploadComplete }) => {
 
   const handleCloseSnackbar = () => {
     setShowSnackbar(false);
+  };
+
+  const handleStartOver = () => {
+    setFile(null);
+    setResult(null);
+    setStyleDescription('');
+    setError(null);
   };
 
   return (
@@ -325,12 +331,13 @@ const StyleUploader: React.FC<StyleUploaderProps> = ({ onUploadComplete }) => {
 
       {result && (
         <ResultScreen
-          originalImage={file ? URL.createObjectURL(file) : ''}
+          originalImage={URL.createObjectURL(file!)}
           editedImage={`${API_URL}${result.preview_url}`}
           styleDescription={result.style_description}
           isProcessing={isProcessing}
           onDownloadXMP={handleDownloadXMP}
           onDownloadDNG={() => {}} // DNG download not implemented
+          onStartOver={handleStartOver}
         />
       )}
 

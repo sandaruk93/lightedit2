@@ -16,6 +16,7 @@ interface ResultScreenProps {
   isProcessing: boolean;
   onDownloadXMP: () => void;
   onDownloadDNG: () => void;
+  onStartOver: () => void;
 }
 
 const ResultScreen: React.FC<ResultScreenProps> = ({
@@ -25,6 +26,7 @@ const ResultScreen: React.FC<ResultScreenProps> = ({
   isProcessing,
   onDownloadXMP,
   onDownloadDNG,
+  onStartOver,
 }) => {
   return (
     <Paper sx={{ p: 3, mb: 3 }}>
@@ -102,6 +104,13 @@ const ResultScreen: React.FC<ResultScreenProps> = ({
           disabled={isProcessing}
         >
           Download DNG
+        </Button>
+        <Button
+          variant="outlined"
+          onClick={onStartOver}
+          disabled={isProcessing}
+        >
+          Start Over
         </Button>
       </Box>
     </Paper>
