@@ -57,7 +57,7 @@ function App() {
     <Container maxWidth="md">
       <Box sx={{ my: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom align="center">
-          Upload your image
+          AI Lightroom Preset Generator
         </Typography>
 
         <StyleUploader onUploadComplete={fetchFiles} />
