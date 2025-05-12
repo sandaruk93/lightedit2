@@ -363,21 +363,6 @@ const StyleUploader: React.FC<StyleUploaderProps> = () => {
         </Button>
       </Paper>
 
-      {/* Show uploaded image preview as soon as a file is selected */}
-      {file && (
-        <Paper sx={{ p: 2, mb: 3 }}>
-          <Typography variant="subtitle2" gutterBottom>
-            Uploaded Image Preview
-          </Typography>
-          <Box
-            component="img"
-            src={URL.createObjectURL(file)}
-            alt="Uploaded"
-            sx={{ width: '100%', height: 'auto', borderRadius: 1 }}
-          />
-        </Paper>
-      )}
-
       {/* Show XMP download and start over only after result is available */}
       {result && (
         <Paper sx={{ p: 2, mb: 3 }}>
