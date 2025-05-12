@@ -8,7 +8,6 @@ import {
   PaletteMode,
   CssBaseline,
 } from '@mui/material';
-import { ReactComponent as Logo } from './assets/logo.svg';
 import StyleUploader from './components/StyleUploader';
 
 const API_URL = 'http://localhost:8000';
@@ -75,12 +74,10 @@ function App() {
       <CssBaseline />
       <Container maxWidth="md">
         <Box sx={{ my: 4 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
-            <Logo style={{ width: 56, height: 56, marginRight: 16 }} />
-            <Typography variant="h4" component="h1" gutterBottom align="center">
-              AI Lightroom Preset Generator
-            </Typography>
-          </Box>
+          <Typography variant="h4" component="h1" gutterBottom align="center">
+            AI Lightroom Preset Generator
+          </Typography>
+
           <StyleUploader />
         </Box>
       </Container>
