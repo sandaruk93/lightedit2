@@ -277,6 +277,21 @@ const StyleUploader: React.FC<StyleUploaderProps> = () => {
           </Box>
         </Box>
 
+        {/* Show uploaded image preview as soon as a file is selected, before prompts */}
+        {file && (
+          <Paper sx={{ p: 2, mb: 3 }}>
+            <Typography variant="subtitle2" gutterBottom>
+              Uploaded Image Preview
+            </Typography>
+            <Box
+              component="img"
+              src={URL.createObjectURL(file)}
+              alt="Uploaded"
+              sx={{ width: '100%', height: 'auto', borderRadius: 1 }}
+            />
+          </Paper>
+        )}
+
         <Box sx={{ mb: 3 }}>
           <Typography variant="subtitle2" gutterBottom>
             Example Prompts:
