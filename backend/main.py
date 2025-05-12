@@ -10,6 +10,8 @@ import shutil
 from pathlib import Path
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
+from PIL import Image, ImageEnhance, ImageOps
+import numpy as np
 
 app = FastAPI()
 
@@ -27,6 +29,105 @@ UPLOAD_DIR = Path("uploads")
 PRESET_DIR = Path("presets")
 UPLOAD_DIR.mkdir(exist_ok=True)
 PRESET_DIR.mkdir(exist_ok=True)
+
+def apply_preset_to_image(image: Image.Image, preset: dict) -> Image.Image:
+    """Apply Lightroom-style preset adjustments to an image."""
+    # Convert to RGB if needed
+    if image.mode != 'RGB':
+        image = image.convert('RGB')
+    
+    # Apply basic adjustments
+    basic = preset["Basic"]
+    
+    # Exposure
+    if basic["Exposure"] != 0:
+        enhancer = ImageEnhance.Brightness(image)
+        image = enhancer.enhance(1 + basic["Exposure"] / 100)
+    
+    # Contrast
+    if basic["Contrast"] != 0:
+        enhancer = ImageEnhance.Contrast(image)
+        image = enhancer.enhance(1 + basic["Contrast"] / 100)
+    
+    # Convert to numpy array for more complex adjustments
+    img_array = np.array(image)
+    
+    # Highlights and Shadows
+    if basic["Highlights"] != 0 or basic["Shadows"] != 0:
+        # Convert to LAB color space
+        lab = Image.fromarray(img_array).convert('LAB')
+        l, a, b = lab.split()
+        
+        # Apply highlights adjustment
+        if basic["Highlights"] != 0:
+            l_array = np.array(l)
+            mask = l_array > 128
+            l_array[mask] = np.clip(l_array[mask] * (1 + basic["Highlights"] / 100), 0, 255)
+            l = Image.fromarray(l_array.astype(np.uint8))
+        
+        # Apply shadows adjustment
+        if basic["Shadows"] != 0:
+            l_array = np.array(l)
+            mask = l_array < 128
+            l_array[mask] = np.clip(l_array[mask] * (1 + basic["Shadows"] / 100), 0, 255)
+            l = Image.fromarray(l_array.astype(np.uint8))
+        
+        # Merge channels back
+        lab = Image.merge('LAB', (l, a, b))
+        img_array = np.array(lab.convert('RGB'))
+    
+    # Temperature and Tint
+    if basic["Temperature"] != 0 or basic["Tint"] != 0:
+        # Temperature (warm/cool)
+        if basic["Temperature"] != 0:
+            temp_factor = 1 + basic["Temperature"] / 100
+            img_array[:, :, 0] = np.clip(img_array[:, :, 0] * temp_factor, 0, 255)  # Red
+            img_array[:, :, 2] = np.clip(img_array[:, :, 2] / temp_factor, 0, 255)  # Blue
+        
+        # Tint (green/magenta)
+        if basic["Tint"] != 0:
+            tint_factor = 1 + basic["Tint"] / 100
+            img_array[:, :, 1] = np.clip(img_array[:, :, 1] * tint_factor, 0, 255)  # Green
+    
+    # Vibrance and Saturation
+    if basic["Vibrance"] != 0 or basic["Saturation"] != 0:
+        # Convert to HSV
+        hsv = Image.fromarray(img_array).convert('HSV')
+        h, s, v = hsv.split()
+        s_array = np.array(s)
+        
+        # Apply vibrance (affects muted colors more)
+        if basic["Vibrance"] != 0:
+            mask = s_array < 128
+            s_array[mask] = np.clip(s_array[mask] * (1 + basic["Vibrance"] / 100), 0, 255)
+        
+        # Apply saturation
+        if basic["Saturation"] != 0:
+            s_array = np.clip(s_array * (1 + basic["Saturation"] / 100), 0, 255)
+        
+        s = Image.fromarray(s_array.astype(np.uint8))
+        hsv = Image.merge('HSV', (h, s, v))
+        img_array = np.array(hsv.convert('RGB'))
+    
+    # Clarity (local contrast)
+    if basic["Clarity"] != 0:
+        # Convert to grayscale for edge detection
+        gray = Image.fromarray(img_array).convert('L')
+        gray_array = np.array(gray)
+        
+        # Apply unsharp mask
+        blur = Image.fromarray(gray_array).filter(ImageFilter.GaussianBlur(radius=2))
+        blur_array = np.array(blur)
+        mask = np.abs(gray_array - blur_array)
+        
+        # Apply clarity adjustment
+        clarity_factor = 1 + basic["Clarity"] / 100
+        img_array = np.clip(img_array + (img_array - blur_array[:, :, np.newaxis]) * (clarity_factor - 1), 0, 255)
+    
+    # Convert back to PIL Image
+    result_image = Image.fromarray(img_array.astype(np.uint8))
+    
+    return result_image
 
 def generate_xmp_preset(style_description: str) -> dict:
     """Generate Lightroom preset values based on style description."""
@@ -263,10 +364,14 @@ async def generate_preset(
         # Create XMP file
         xmp_path = create_xmp_file(preset_data, preset_id)
         
-        # For now, we'll just copy the original image as the preview
-        # In a real implementation, you would process the image with the preset
-        preview_path = UPLOAD_DIR / f"preview_{preset_id}.jpg"
-        shutil.copy(file_path, preview_path)
+        # Apply preset to image and save preview
+        with Image.open(file_path) as img:
+            # Apply the preset adjustments
+            preview_img = apply_preset_to_image(img, preset_data)
+            
+            # Save the preview
+            preview_path = UPLOAD_DIR / f"preview_{preset_id}.jpg"
+            preview_img.save(preview_path, "JPEG", quality=95)
         
         return {
             "preset_id": preset_id,
