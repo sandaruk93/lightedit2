@@ -242,7 +242,7 @@ const StyleUploader: React.FC<StyleUploaderProps> = ({ onUploadComplete }) => {
     <>
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6" gutterBottom>
-          Generate Lightroom Preset
+          AI Lightroom Preset Generator
         </Typography>
 
         <Box
