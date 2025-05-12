@@ -12,6 +12,7 @@ import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from PIL import Image, ImageEnhance, ImageOps
 import numpy as np
+import re
 
 app = FastAPI()
 
@@ -297,7 +298,12 @@ def generate_xmp_preset(style_description: str) -> dict:
 
     return preset
 
-def create_xmp_file(preset_data: dict, preset_id: str) -> str:
+def slugify(text: str) -> str:
+    text = text.lower()
+    text = re.sub(r'[^a-z0-9]+', '-', text)
+    return text.strip('-')
+
+def create_xmp_file(preset_data: dict, xmp_filename: str) -> str:
     """Create an XMP file with the preset data."""
     # Create the root element
     root = ET.Element("x:xmpmeta", {
@@ -320,7 +326,7 @@ def create_xmp_file(preset_data: dict, preset_id: str) -> str:
         "crs:SupportsAmount": "False",
         "crs:RequiresRGBTables": "False",
         "crs:Group": "User Presets",
-        "crs:Name": f"Preset_{preset_id}"
+        "crs:Name": f"Preset_{xmp_filename}"
     })
     
     # Add all preset values
@@ -338,7 +344,7 @@ def create_xmp_file(preset_data: dict, preset_id: str) -> str:
     xml_str = minidom.parseString(ET.tostring(root)).toprettyxml(indent="  ")
     
     # Save the XMP file
-    xmp_path = PRESET_DIR / f"preset_{preset_id}.xmp"
+    xmp_path = PRESET_DIR / xmp_filename
     with open(xmp_path, "w") as f:
         f.write(xml_str)
     
@@ -361,22 +367,24 @@ async def generate_preset(
         # Generate preset values
         preset_data = generate_xmp_preset(style_description)
         
+        # Prepare XMP file name
+        original_name = os.path.splitext(file.filename)[0]
+        preset_slug = slugify(style_description)
+        xmp_filename = f"{original_name}-preset-{preset_slug}.xmp"
+        
         # Create XMP file
-        xmp_path = create_xmp_file(preset_data, preset_id)
+        xmp_path = create_xmp_file(preset_data, xmp_filename)
         
         # Apply preset to image and save preview
         with Image.open(file_path) as img:
-            # Apply the preset adjustments
             preview_img = apply_preset_to_image(img, preset_data)
-            
-            # Save the preview
             preview_path = UPLOAD_DIR / f"preview_{preset_id}.jpg"
             preview_img.save(preview_path, "JPEG", quality=95)
         
         return {
             "preset_id": preset_id,
             "style_description": style_description,
-            "xmp_url": f"/presets/preset_{preset_id}.xmp",
+            "xmp_url": f"/presets/{xmp_filename}",
             "preview_url": f"/uploads/preview_{preset_id}.jpg"
         }
     except Exception as e:
