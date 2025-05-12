@@ -336,7 +336,6 @@ const StyleUploader: React.FC<StyleUploaderProps> = ({ onUploadComplete }) => {
           styleDescription={result.style_description}
           isProcessing={isProcessing}
           onDownloadXMP={handleDownloadXMP}
-          onDownloadDNG={() => {}} // DNG download not implemented
           onStartOver={handleStartOver}
         />
       )}
