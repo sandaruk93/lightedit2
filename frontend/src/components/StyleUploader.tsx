@@ -11,15 +11,13 @@ import {
   Alert,
   Snackbar,
 } from '@mui/material';
-import { CloudUpload as CloudUploadIcon, AutoFixHigh as PresetIcon } from '@mui/icons-material';
+import { CloudUpload as CloudUploadIcon, AutoFixHigh as PresetIcon, Download as DownloadIcon } from '@mui/icons-material';
 import axios, { AxiosError } from 'axios';
 import ResultScreen from './ResultScreen';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
-interface StyleUploaderProps {
-  onUploadComplete?: () => void;
-}
+interface StyleUploaderProps {}
 
 interface PresetResult {
   preset_id: string;
@@ -38,14 +36,14 @@ interface ErrorState {
 }
 
 const EXAMPLE_PROMPTS = [
-  'cinematic moody look',
-  'vintage film grain',
-  'high contrast dramatic',
-  'soft dreamy aesthetic',
-  'film noir style',
+  'Cinematic moody look',
+  'Vintage film grain',
+  'High contrast dramatic',
+  'Soft dreamy aesthetic',
+  'Film noir style',
 ];
 
-const StyleUploader: React.FC<StyleUploaderProps> = ({ onUploadComplete }) => {
+const StyleUploader: React.FC<StyleUploaderProps> = () => {
   const [file, setFile] = useState<File | null>(null);
   const [styleDescription, setStyleDescription] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -151,12 +149,8 @@ const StyleUploader: React.FC<StyleUploaderProps> = ({ onUploadComplete }) => {
       setResult(response.data);
       setShowSnackbar(true);
       
-      // Reset form
-      setFile(null);
+      // Don't reset form immediately
       setStyleDescription('');
-      if (onUploadComplete) {
-        onUploadComplete();
-      }
     } catch (error) {
       const axiosError = error as AxiosError<ErrorResponse>;
       setError({
@@ -204,15 +198,46 @@ const StyleUploader: React.FC<StyleUploaderProps> = ({ onUploadComplete }) => {
     }
   };
 
+  const handleDownloadEdited = async () => {
+    if (!result) return;
+    
+    try {
+      const response = await axios.get(`${API_URL}${result.preview_url}`, {
+        responseType: 'blob',
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `edited_${result.preset_id}.jpg`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setShowSnackbar(true);
+    } catch (error) {
+      setError({
+        message: 'Download failed',
+        details: 'Failed to download edited image. Please try again.'
+      });
+    }
+  };
+
   const handleCloseSnackbar = () => {
     setShowSnackbar(false);
+  };
+
+  const handleStartOver = () => {
+    setFile(null);
+    setResult(null);
+    setStyleDescription('');
+    setError(null);
   };
 
   return (
     <>
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6" gutterBottom>
-          Generate Lightroom Preset
+          Upload your image
         </Typography>
 
         <Box
@@ -252,6 +277,21 @@ const StyleUploader: React.FC<StyleUploaderProps> = ({ onUploadComplete }) => {
           </Box>
         </Box>
 
+        {/* Show uploaded image preview as soon as a file is selected, before prompts */}
+        {file && (
+          <Paper sx={{ p: 2, mb: 3 }}>
+            <Typography variant="subtitle2" gutterBottom>
+              Uploaded Image Preview
+            </Typography>
+            <Box
+              component="img"
+              src={URL.createObjectURL(file)}
+              alt="Uploaded"
+              sx={{ width: '100%', height: 'auto', borderRadius: 1 }}
+            />
+          </Paper>
+        )}
+
         <Box sx={{ mb: 3 }}>
           <Typography variant="subtitle2" gutterBottom>
             Example Prompts:
@@ -289,7 +329,7 @@ const StyleUploader: React.FC<StyleUploaderProps> = ({ onUploadComplete }) => {
             sx={{ minWidth: '150px' }}
             disabled={uploading}
           >
-            Generate Preset
+            Surprise Me
           </Button>
         </Box>
 
@@ -323,15 +363,28 @@ const StyleUploader: React.FC<StyleUploaderProps> = ({ onUploadComplete }) => {
         </Button>
       </Paper>
 
+      {/* Show XMP download and start over only after result is available */}
       {result && (
-        <ResultScreen
-          originalImage={file ? URL.createObjectURL(file) : ''}
-          editedImage={`${API_URL}${result.preview_url}`}
-          styleDescription={result.style_description}
-          isProcessing={isProcessing}
-          onDownloadXMP={handleDownloadXMP}
-          onDownloadDNG={() => {}} // DNG download not implemented
-        />
+        <Paper sx={{ p: 2, mb: 3 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Preset Generated!
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+            <Button
+              variant="contained"
+              startIcon={<DownloadIcon />}
+              onClick={handleDownloadXMP}
+            >
+              Download XMP
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={handleStartOver}
+            >
+              Start Over
+            </Button>
+          </Box>
+        </Paper>
       )}
 
       <Snackbar

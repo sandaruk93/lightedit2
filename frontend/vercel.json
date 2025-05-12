@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "buildCommand": "npm install --legacy-peer-deps && npm run build",
+  "outputDirectory": "build",
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "https://lightedit-backend.onrender.com/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ],
+  "env": {
+    "CI": "false",
+    "GENERATE_SOURCEMAP": "false"
+  }
+} 
