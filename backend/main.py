@@ -317,7 +317,7 @@ def create_xmp_file(preset_data: dict, xmp_filename: str) -> str:
         "xmlns:crs": "http://ns.adobe.com/camera-raw-settings/1.0/"
     })
     
-    # Create the Description element
+    # Create the Description element with Lightroom expected tags
     desc = ET.SubElement(rdf, "rdf:Description", {
         "rdf:about": "",
         "crs:PresetType": "Normal",
@@ -326,20 +326,25 @@ def create_xmp_file(preset_data: dict, xmp_filename: str) -> str:
         "crs:SupportsAmount": "False",
         "crs:RequiresRGBTables": "False",
         "crs:Group": "User Presets",
-        "crs:Name": f"Preset_{xmp_filename}"
+        "crs:Name": f"Preset_{xmp_filename}",
+        "crs:Version": "13.0",
+        "crs:ProcessVersion": "11.0"
     })
-    
-    # Add all preset values
-    for section, values in preset_data.items():
-        for key, value in values.items():
-            if isinstance(value, (int, float, bool)):
-                desc.set(f"crs:{section}{key}", str(value).lower())
-            elif isinstance(value, list):
-                # Handle tone curve points
-                if key == "Points":
-                    for i, point in enumerate(value):
-                        desc.set(f"crs:{section}{key}{i}", f"{point[0]},{point[1]}")
-    
+
+    # Map to Lightroom's expected tags
+    basic = preset_data["Basic"]
+    desc.set("crs:Exposure2012", str(basic["Exposure"]))
+    desc.set("crs:Contrast2012", str(basic["Contrast"]))
+    desc.set("crs:Highlights2012", str(basic["Highlights"]))
+    desc.set("crs:Shadows2012", str(basic["Shadows"]))
+    desc.set("crs:Whites2012", str(basic.get("Whites", 0)))
+    desc.set("crs:Blacks2012", str(basic.get("Blacks", 0)))
+    desc.set("crs:Clarity2012", str(basic["Clarity"]))
+    desc.set("crs:Vibrance", str(basic["Vibrance"]))
+    desc.set("crs:Saturation", str(basic["Saturation"]))
+    desc.set("crs:Temperature", str(basic["Temperature"]))
+    desc.set("crs:Tint", str(basic["Tint"]))
+
     # Create a pretty XML string
     xml_str = minidom.parseString(ET.tostring(root)).toprettyxml(indent="  ")
     
