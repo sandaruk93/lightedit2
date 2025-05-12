@@ -319,7 +319,7 @@ const StyleUploader: React.FC<StyleUploaderProps> = ({ onUploadComplete }) => {
             sx={{ minWidth: '150px' }}
             disabled={uploading}
           >
-            Generate Preset
+            Surprise Me
           </Button>
         </Box>
 
