@@ -38,11 +38,11 @@ interface ErrorState {
 }
 
 const EXAMPLE_PROMPTS = [
-  'cinematic moody look',
-  'vintage film grain',
-  'high contrast dramatic',
-  'soft dreamy aesthetic',
-  'film noir style',
+  'Cinematic moody look',
+  'Vintage film grain',
+  'High contrast dramatic',
+  'Soft dreamy aesthetic',
+  'Film noir style',
 ];
 
 const StyleUploader: React.FC<StyleUploaderProps> = ({ onUploadComplete }) => {
