@@ -11,7 +11,7 @@ import {
   Alert,
   Snackbar,
 } from '@mui/material';
-import { CloudUpload as CloudUploadIcon, AutoFixHigh as PresetIcon } from '@mui/icons-material';
+import { CloudUpload as CloudUploadIcon, AutoFixHigh as PresetIcon, Download as DownloadIcon } from '@mui/icons-material';
 import axios, { AxiosError } from 'axios';
 import ResultScreen from './ResultScreen';
 
@@ -348,13 +348,43 @@ const StyleUploader: React.FC<StyleUploaderProps> = () => {
         </Button>
       </Paper>
 
+      {/* Show uploaded image preview as soon as a file is selected */}
+      {file && (
+        <Paper sx={{ p: 2, mb: 3 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Uploaded Image Preview
+          </Typography>
+          <Box
+            component="img"
+            src={URL.createObjectURL(file)}
+            alt="Uploaded"
+            sx={{ width: '100%', height: 'auto', borderRadius: 1 }}
+          />
+        </Paper>
+      )}
+
+      {/* Show XMP download and start over only after result is available */}
       {result && (
-        <ResultScreen
-          originalImage={URL.createObjectURL(file!)}
-          styleDescription={result.style_description}
-          onDownloadXMP={handleDownloadXMP}
-          onStartOver={handleStartOver}
-        />
+        <Paper sx={{ p: 2, mb: 3 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Preset Generated!
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+            <Button
+              variant="contained"
+              startIcon={<DownloadIcon />}
+              onClick={handleDownloadXMP}
+            >
+              Download XMP
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={handleStartOver}
+            >
+              Start Over
+            </Button>
+          </Box>
+        </Paper>
       )}
 
       <Snackbar
