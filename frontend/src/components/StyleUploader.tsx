@@ -203,6 +203,30 @@ const StyleUploader: React.FC<StyleUploaderProps> = ({ onUploadComplete }) => {
     }
   };
 
+  const handleDownloadEdited = async () => {
+    if (!result) return;
+    
+    try {
+      const response = await axios.get(`${API_URL}${result.preview_url}`, {
+        responseType: 'blob',
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `edited_${result.preset_id}.jpg`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setShowSnackbar(true);
+    } catch (error) {
+      setError({
+        message: 'Download failed',
+        details: 'Failed to download edited image. Please try again.'
+      });
+    }
+  };
+
   const handleCloseSnackbar = () => {
     setShowSnackbar(false);
   };
@@ -336,6 +360,7 @@ const StyleUploader: React.FC<StyleUploaderProps> = ({ onUploadComplete }) => {
           styleDescription={result.style_description}
           isProcessing={isProcessing}
           onDownloadXMP={handleDownloadXMP}
+          onDownloadEdited={handleDownloadEdited}
           onStartOver={handleStartOver}
         />
       )}
