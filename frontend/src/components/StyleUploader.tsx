@@ -17,9 +17,7 @@ import ResultScreen from './ResultScreen';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
-interface StyleUploaderProps {
-  onUploadComplete?: () => void;
-}
+interface StyleUploaderProps {}
 
 interface PresetResult {
   preset_id: string;
@@ -45,7 +43,7 @@ const EXAMPLE_PROMPTS = [
   'Film noir style',
 ];
 
-const StyleUploader: React.FC<StyleUploaderProps> = ({ onUploadComplete }) => {
+const StyleUploader: React.FC<StyleUploaderProps> = () => {
   const [file, setFile] = useState<File | null>(null);
   const [styleDescription, setStyleDescription] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -153,9 +151,6 @@ const StyleUploader: React.FC<StyleUploaderProps> = ({ onUploadComplete }) => {
       
       // Don't reset form immediately
       setStyleDescription('');
-      if (onUploadComplete) {
-        onUploadComplete();
-      }
     } catch (error) {
       const axiosError = error as AxiosError<ErrorResponse>;
       setError({
