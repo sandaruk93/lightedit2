@@ -351,11 +351,8 @@ const StyleUploader: React.FC<StyleUploaderProps> = () => {
       {result && (
         <ResultScreen
           originalImage={URL.createObjectURL(file!)}
-          editedImage={`${API_URL}${result.preview_url}`}
           styleDescription={result.style_description}
-          isProcessing={isProcessing}
           onDownloadXMP={handleDownloadXMP}
-          onDownloadEdited={handleDownloadEdited}
           onStartOver={handleStartOver}
         />
       )}
