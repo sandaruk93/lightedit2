@@ -304,11 +304,11 @@ def slugify(text: str) -> str:
     return text.strip('-')
 
 def create_xmp_file(preset_data: dict, xmp_filename: str) -> str:
-    """Create an XMP file with the preset data."""
-    # Create the root element
+    # Create the root element with dc namespace
     root = ET.Element("x:xmpmeta", {
         "xmlns:x": "adobe:ns:meta/",
-        "x:xmptk": "Adobe XMP Core 5.6-c140 79.160451, 2017/05/06-01:08:21"
+        "x:xmptk": "Adobe XMP Core 5.6-c140 79.160451, 2017/05/06-01:08:21",
+        "xmlns:dc": "http://purl.org/dc/elements/1.1/"
     })
     
     # Create the RDF element
@@ -345,14 +345,14 @@ def create_xmp_file(preset_data: dict, xmp_filename: str) -> str:
     desc.set("crs:Temperature", str(basic["Temperature"]))
     desc.set("crs:Tint", str(basic["Tint"]))
 
-    # Create a pretty XML string
+    # Debug print the XML string
     xml_str = minidom.parseString(ET.tostring(root)).toprettyxml(indent="  ")
+    print("\n--- XMP XML DEBUG ---\n", xml_str, "\n--- END XMP XML DEBUG ---\n")
     
     # Save the XMP file
     xmp_path = PRESET_DIR / xmp_filename
     with open(xmp_path, "w") as f:
         f.write(xml_str)
-    
     return str(xmp_path)
 
 @app.post("/generate_preset/")
