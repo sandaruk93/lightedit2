@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Box,
   TextField,
@@ -10,6 +10,11 @@ import {
   Stack,
   Alert,
   Snackbar,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormControl,
+  FormLabel,
 } from '@mui/material';
 import { CloudUpload as CloudUploadIcon, AutoFixHigh as PresetIcon, Download as DownloadIcon } from '@mui/icons-material';
 import axios, { AxiosError } from 'axios';
@@ -52,6 +57,8 @@ const StyleUploader: React.FC<StyleUploaderProps> = () => {
   const [result, setResult] = useState<PresetResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSnackbar, setShowSnackbar] = useState(false);
+  const [presetOptions, setPresetOptions] = useState<string[]>([]);
+  const [selectedPreset, setSelectedPreset] = useState('');
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -114,6 +121,34 @@ const StyleUploader: React.FC<StyleUploaderProps> = () => {
     }
   }, []);
 
+  // Fetch preset options from backend CSV (or hardcode for now)
+  useEffect(() => {
+    // For now, hardcode the list (should be fetched from backend ideally)
+    setPresetOptions([
+      'Cinematic Teal & Orange',
+      'Moody Forest',
+      'Urban Grit',
+      'Golden Hour Glow',
+      'Film Matte Fade',
+      'Pastel Pop',
+      'Vintage Sepia',
+      'Retro 90s Camcorder',
+      'Soft Skin Portrait',
+      'Vibrant Boost',
+      'Clean Light Airy',
+      'Earth Tones',
+      'Coastal Cool',
+      'Foggy Minimal',
+      'Black & White Contrast',
+      'Custom Warm + Contrast + Dehaze',
+    ]);
+  }, []);
+
+  const handlePresetChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSelectedPreset(event.target.value);
+    setError(null);
+  };
+
   const handleSubmit = async () => {
     if (!file) {
       setError({
@@ -122,18 +157,16 @@ const StyleUploader: React.FC<StyleUploaderProps> = () => {
       });
       return;
     }
-
-    if (!styleDescription.trim()) {
+    if (!selectedPreset) {
       setError({
-        message: 'No style description',
-        details: 'Please enter a style description or select a preset'
+        message: 'No preset selected',
+        details: 'Please select a preset style to continue.'
       });
       return;
     }
-
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('style_description', styleDescription);
+    formData.append('style_description', selectedPreset);
 
     try {
       setUploading(true);
@@ -150,7 +183,7 @@ const StyleUploader: React.FC<StyleUploaderProps> = () => {
       setShowSnackbar(true);
       
       // Don't reset form immediately
-      setStyleDescription('');
+      setSelectedPreset('');
     } catch (error) {
       const axiosError = error as AxiosError<ErrorResponse>;
       setError({
@@ -161,17 +194,6 @@ const StyleUploader: React.FC<StyleUploaderProps> = () => {
       setUploading(false);
       setIsProcessing(false);
     }
-  };
-
-  const handlePresetClick = (prompt: string) => {
-    setStyleDescription(prompt);
-    setError(null);
-  };
-
-  const generatePreset = () => {
-    const randomPrompt = EXAMPLE_PROMPTS[Math.floor(Math.random() * EXAMPLE_PROMPTS.length)];
-    setStyleDescription(randomPrompt);
-    setError(null);
   };
 
   const handleDownloadXMP = async () => {
@@ -229,7 +251,7 @@ const StyleUploader: React.FC<StyleUploaderProps> = () => {
   const handleStartOver = () => {
     setFile(null);
     setResult(null);
-    setStyleDescription('');
+    setSelectedPreset('');
     setError(null);
   };
 
@@ -292,44 +314,60 @@ const StyleUploader: React.FC<StyleUploaderProps> = () => {
           </Paper>
         )}
 
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" gutterBottom>
-            Example Prompts:
-          </Typography>
-          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-            {EXAMPLE_PROMPTS.map((prompt) => (
-              <Chip
-                key={prompt}
-                label={prompt}
-                onClick={() => handlePresetClick(prompt)}
-                sx={{ m: 0.5 }}
+        {/* Preset selection UI */}
+        <FormControl component="fieldset" sx={{ mb: 3, width: '100%' }}>
+          <FormLabel component="legend">Select a Preset Style</FormLabel>
+          <RadioGroup
+            aria-label="preset-style"
+            name="preset-style"
+            value={selectedPreset}
+            onChange={handlePresetChange}
+          >
+            {presetOptions.map((preset) => (
+              <FormControlLabel
+                key={preset}
+                value={preset}
+                control={<Radio />}
+                label={preset}
                 disabled={uploading}
               />
             ))}
-          </Stack>
-        </Box>
+          </RadioGroup>
+        </FormControl>
 
-        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-          <TextField
-            fullWidth
-            label="Style Description"
-            multiline
-            rows={3}
-            value={styleDescription}
-            onChange={(e) => setStyleDescription(e.target.value)}
-            placeholder="Describe the style of your preset..."
-            disabled={uploading}
-            error={!!error && error.message === 'No style description'}
-            helperText={error?.message === 'No style description' ? error.details : ''}
-          />
+        {/* Surprise Me Button */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
           <Button
-            variant="outlined"
+            variant="contained"
             startIcon={<PresetIcon />}
-            onClick={generatePreset}
-            sx={{ minWidth: '150px' }}
-            disabled={uploading}
+            onClick={() => {
+              if (presetOptions.length > 0) {
+                const random = presetOptions[Math.floor(Math.random() * presetOptions.length)];
+                setSelectedPreset(random);
+                setError(null);
+              }
+            }}
+            disabled={uploading || presetOptions.length === 0}
+            sx={{
+              background: 'linear-gradient(90deg, #ff9800 0%, #ff5722 100%)',
+              color: 'white',
+              fontWeight: 'bold',
+              borderRadius: 3,
+              px: 4,
+              py: 1.5,
+              fontSize: '1.1rem',
+              boxShadow: 3,
+              textTransform: 'uppercase',
+              letterSpacing: 1,
+              transition: 'all 0.2s',
+              '&:hover': {
+                background: 'linear-gradient(90deg, #ff5722 0%, #ff9800 100%)',
+                boxShadow: 6,
+                transform: 'scale(1.05)',
+              },
+            }}
           >
-            Surprise Me
+            Surprise Me!
           </Button>
         </Box>
 
@@ -349,7 +387,7 @@ const StyleUploader: React.FC<StyleUploaderProps> = () => {
         <Button
           variant="contained"
           onClick={handleSubmit}
-          disabled={uploading || !file || !styleDescription.trim()}
+          disabled={uploading || !file || !selectedPreset}
           fullWidth
         >
           {uploading ? (
@@ -386,6 +424,7 @@ const StyleUploader: React.FC<StyleUploaderProps> = () => {
           </Box>
         </Paper>
       )}
+      
 
       <Snackbar
         open={showSnackbar}
