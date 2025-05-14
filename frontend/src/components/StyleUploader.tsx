@@ -314,26 +314,29 @@ const StyleUploader: React.FC<StyleUploaderProps> = () => {
           </Paper>
         )}
 
-        {/* Preset selection UI */}
-        <FormControl component="fieldset" sx={{ mb: 3, width: '100%' }}>
-          <FormLabel component="legend">Select a Preset Style</FormLabel>
-          <RadioGroup
-            aria-label="preset-style"
-            name="preset-style"
-            value={selectedPreset}
-            onChange={handlePresetChange}
-          >
+        {/* Preset selection as Chips */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Select a Preset Style
+          </Typography>
+          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
             {presetOptions.map((preset) => (
-              <FormControlLabel
+              <Chip
                 key={preset}
-                value={preset}
-                control={<Radio />}
                 label={preset}
+                clickable
+                color={selectedPreset === preset ? 'primary' : 'default'}
+                variant={selectedPreset === preset ? 'filled' : 'outlined'}
+                onClick={() => {
+                  setSelectedPreset(preset);
+                  setError(null);
+                }}
                 disabled={uploading}
+                sx={{ m: 0.5, fontWeight: selectedPreset === preset ? 'bold' : 'normal' }}
               />
             ))}
-          </RadioGroup>
-        </FormControl>
+          </Stack>
+        </Box>
 
         {/* Surprise Me Button */}
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
