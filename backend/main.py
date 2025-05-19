@@ -5,12 +5,13 @@ import os
 import uuid
 import json
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Dict
 import shutil
 from pathlib import Path
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 import re
+import csv
 
 app = FastAPI()
 
@@ -26,11 +27,97 @@ app.add_middleware(
 # Create necessary directories
 UPLOAD_DIR = Path("uploads")
 PRESET_DIR = Path("presets")
+CONFIG_DIR = Path("config")
 UPLOAD_DIR.mkdir(exist_ok=True)
 PRESET_DIR.mkdir(exist_ok=True)
+CONFIG_DIR.mkdir(exist_ok=True)
+
+# Default preset values if CSV is not available
+DEFAULT_PRESETS = {
+    "cinematic": {
+        "Basic": {
+            "Exposure": 0.2,
+            "Contrast": 15,
+            "Highlights": -20,
+            "Shadows": 10,
+            "Clarity": 10,
+            "Vibrance": 5,
+            "Temperature": 10,
+            "Tint": 2
+        },
+        "ToneCurve": {
+            "Enabled": True,
+            "Points": [[0, 0], [64, 60], [192, 200], [255, 255]]
+        },
+        "SplitToning": {
+            "Enabled": True,
+            "HighlightHue": 45,
+            "HighlightSaturation": 10,
+            "ShadowHue": 215,
+            "ShadowSaturation": 15,
+            "Balance": 25
+        }
+    },
+    # ... other default presets ...
+}
+
+def load_preset_configs() -> Dict[str, dict]:
+    """Load preset configurations from CSV file."""
+    config_path = CONFIG_DIR / "presets.csv"
+    if not config_path.exists():
+        return DEFAULT_PRESETS
+
+    presets = {}
+    try:
+        with open(config_path, 'r') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                preset_name = row['preset_name'].lower()
+                presets[preset_name] = {
+                    "Basic": {
+                        "Exposure": float(row.get('exposure', 0)),
+                        "Contrast": int(row.get('contrast', 0)),
+                        "Highlights": int(row.get('highlights', 0)),
+                        "Shadows": int(row.get('shadows', 0)),
+                        "Whites": int(row.get('whites', 0)),
+                        "Blacks": int(row.get('blacks', 0)),
+                        "Clarity": int(row.get('clarity', 0)),
+                        "Vibrance": int(row.get('vibrance', 0)),
+                        "Saturation": int(row.get('saturation', 0)),
+                        "Temperature": int(row.get('temperature', 0)),
+                        "Tint": int(row.get('tint', 0))
+                    },
+                    "ToneCurve": {
+                        "Enabled": True,
+                        "Points": [
+                            [0, 0],
+                            [int(row.get('curve_midpoint', 128)), int(row.get('curve_midvalue', 128))],
+                            [255, 255]
+                        ]
+                    },
+                    "SplitToning": {
+                        "Enabled": True,
+                        "HighlightHue": int(row.get('highlight_hue', 0)),
+                        "HighlightSaturation": int(row.get('highlight_saturation', 0)),
+                        "ShadowHue": int(row.get('shadow_hue', 0)),
+                        "ShadowSaturation": int(row.get('shadow_saturation', 0)),
+                        "Balance": int(row.get('split_toning_balance', 0))
+                    },
+                    "ColorAdjustments": {
+                        "Enabled": True,
+                        "Adjustments": row.get('color_adjustments', 'None')
+                    }
+                }
+        return presets
+    except Exception as e:
+        print(f"Error loading preset configs: {e}")
+        return DEFAULT_PRESETS
 
 def generate_xmp_preset(style_description: str) -> dict:
     """Generate Lightroom preset values based on style description."""
+    # Load preset configurations
+    presets = load_preset_configs()
+    
     # Base preset values
     preset = {
         "Basic": {
@@ -48,42 +135,7 @@ def generate_xmp_preset(style_description: str) -> dict:
         },
         "ToneCurve": {
             "Enabled": True,
-            "Points": [
-                [0, 0],
-                [255, 255]
-            ]
-        },
-        "HSL": {
-            "Hue": {
-                "Red": 0,
-                "Orange": 0,
-                "Yellow": 0,
-                "Green": 0,
-                "Aqua": 0,
-                "Blue": 0,
-                "Purple": 0,
-                "Magenta": 0
-            },
-            "Saturation": {
-                "Red": 0,
-                "Orange": 0,
-                "Yellow": 0,
-                "Green": 0,
-                "Aqua": 0,
-                "Blue": 0,
-                "Purple": 0,
-                "Magenta": 0
-            },
-            "Luminance": {
-                "Red": 0,
-                "Orange": 0,
-                "Yellow": 0,
-                "Green": 0,
-                "Aqua": 0,
-                "Blue": 0,
-                "Purple": 0,
-                "Magenta": 0
-            }
+            "Points": [[0, 0], [255, 255]]
         },
         "SplitToning": {
             "Enabled": True,
@@ -92,108 +144,24 @@ def generate_xmp_preset(style_description: str) -> dict:
             "ShadowHue": 0,
             "ShadowSaturation": 0,
             "Balance": 0
-        },
-        "Detail": {
-            "Sharpness": 0,
-            "LuminanceSmoothing": 0,
-            "ColorNoiseReduction": 0
         }
     }
 
-    # Apply style-specific adjustments based on the description
+    # Find the best matching preset
     style_lower = style_description.lower()
-    
-    if "cinematic" in style_lower:
-        preset["Basic"].update({
-            "Contrast": 15,
-            "Highlights": -20,
-            "Shadows": 10,
-            "Clarity": 10,
-            "Vibrance": 5,
-            "Temperature": 5
-        })
-        preset["ToneCurve"]["Points"] = [
-            [0, 0],
-            [64, 60],
-            [192, 200],
-            [255, 255]
-        ]
-        preset["SplitToning"].update({
-            "HighlightHue": 45,
-            "HighlightSaturation": 10,
-            "ShadowHue": 215,
-            "ShadowSaturation": 15
-        })
+    best_match = None
+    best_score = 0
 
-    elif "vintage" in style_lower:
-        preset["Basic"].update({
-            "Exposure": 0.5,
-            "Contrast": 10,
-            "Highlights": -15,
-            "Shadows": 15,
-            "Clarity": -5,
-            "Vibrance": -10,
-            "Saturation": -15,
-            "Temperature": 10
-        })
-        preset["ToneCurve"]["Points"] = [
-            [0, 0],
-            [85, 90],
-            [170, 160],
-            [255, 255]
-        ]
-        preset["SplitToning"].update({
-            "HighlightHue": 40,
-            "HighlightSaturation": 20,
-            "ShadowHue": 200,
-            "ShadowSaturation": 10
-        })
+    for preset_name in presets:
+        if preset_name in style_lower:
+            best_match = preset_name
+            break
 
-    elif "dramatic" in style_lower:
-        preset["Basic"].update({
-            "Exposure": -0.5,
-            "Contrast": 25,
-            "Highlights": -30,
-            "Shadows": 20,
-            "Clarity": 15,
-            "Vibrance": 10,
-            "Temperature": -5
-        })
-        preset["ToneCurve"]["Points"] = [
-            [0, 0],
-            [64, 50],
-            [192, 210],
-            [255, 255]
-        ]
-        preset["SplitToning"].update({
-            "HighlightHue": 30,
-            "HighlightSaturation": 15,
-            "ShadowHue": 210,
-            "ShadowSaturation": 20
-        })
-
-    elif "dreamy" in style_lower:
-        preset["Basic"].update({
-            "Exposure": 0.5,
-            "Contrast": -10,
-            "Highlights": -20,
-            "Shadows": 15,
-            "Clarity": -10,
-            "Vibrance": 5,
-            "Temperature": 5
-        })
-        preset["ToneCurve"]["Points"] = [
-            [0, 0],
-            [85, 95],
-            [170, 165],
-            [255, 255]
-        ]
-        preset["SplitToning"].update({
-            "HighlightHue": 45,
-            "HighlightSaturation": 15,
-            "ShadowHue": 220,
-            "ShadowSaturation": 10
-        })
+    if best_match:
+        # Apply the matching preset
+        preset["Basic"].update(presets[best_match]["Basic"])
+        preset["ToneCurve"] = presets[best_match]["ToneCurve"]
+        preset["SplitToning"] = presets[best_match]["SplitToning"]
 
     return preset
 
@@ -243,6 +211,23 @@ def create_xmp_file(preset_data: dict, xmp_filename: str) -> str:
     desc.set("crs:Saturation", str(basic["Saturation"]))
     desc.set("crs:Temperature", str(basic["Temperature"]))
     desc.set("crs:Tint", str(basic["Tint"]))
+
+    # Add color adjustments if present
+    if "ColorAdjustments" in preset_data and preset_data["ColorAdjustments"]["Enabled"]:
+        color_adjustments = preset_data["ColorAdjustments"]["Adjustments"]
+        if color_adjustments != "None":
+            # Parse color adjustments string and set HSL values
+            adjustments = color_adjustments.split(", ")
+            for adjustment in adjustments:
+                if ":" in adjustment:
+                    color, value = adjustment.split(":")
+                    if color == "All":
+                        # Apply to all colors
+                        for c in ["Red", "Orange", "Yellow", "Green", "Aqua", "Blue", "Purple", "Magenta"]:
+                            desc.set(f"crs:Hue{c}", value)
+                    else:
+                        # Apply to specific color
+                        desc.set(f"crs:Hue{color}", value)
 
     # Debug print the XML string
     xml_str = minidom.parseString(ET.tostring(root)).toprettyxml(indent="  ")

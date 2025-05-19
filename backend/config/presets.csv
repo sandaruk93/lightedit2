@@ -1,17 +1,17 @@
-preset_name,exposure,contrast,highlights,shadows,whites,blacks,clarity,vibrance,saturation,temperature,tint,curve_midpoint,curve_midvalue,highlight_hue,highlight_saturation,shadow_hue,shadow_saturation,split_toning_balance
-Cinematic Teal & Orange,0.0,30.0,-20.0,20.0,10.0,-25.0,15.0,20.0,-5.0,20,10,128,128,0,0,0,0,0
-Moody Forest,-0.15,20.0,-30.0,30.0,0.0,-40.0,20.0,10.0,-10.0,-20,5,128,128,0,0,0,0,0
-Urban Grit,-0.1,35.0,-20.0,10.0,15.0,-30.0,30.0,-10.0,-20.0,-10,0,128,128,0,0,0,0,0
-Golden Hour Glow,0.25,20.0,-30.0,20.0,10.0,-10.0,10.0,25.0,10.0,10,10,128,128,0,0,0,0,0
-Film Matte Fade,0.0,-10.0,-20.0,20.0,-10.0,20.0,0.0,5.0,-5.0,0,0,128,128,0,0,0,0,0
-Pastel Pop,0.1,-5.0,-10.0,30.0,5.0,-5.0,-5.0,10.0,5.0,-6,5,128,128,0,0,0,0,0
-Vintage Sepia,0.0,10.0,-10.0,10.0,0.0,-20.0,5.0,5.0,-10.0,5,20,128,128,0,0,0,0,0
-Retro 90s Camcorder,-0.1,0.0,-15.0,20.0,-10.0,10.0,5.0,-5.0,-10.0,-20,-10,128,128,0,0,0,0,0
-Soft Skin Portrait,0.1,5.0,-10.0,10.0,10.0,-10.0,-15.0,15.0,5.0,3,5,128,128,0,0,0,0,0
-Vibrant Boost,0.2,15.0,-10.0,15.0,10.0,-15.0,10.0,30.0,15.0,6,10,128,128,0,0,0,0,0
-Clean Light Airy,0.5,-5.0,-10.0,20.0,20.0,-10.0,0.0,10.0,5.0,9,10,128,128,0,0,0,0,0
-Earth Tones,-0.05,10.0,-10.0,10.0,-5.0,-10.0,5.0,5.0,-5.0,1,5,128,128,0,0,0,0,0
-Coastal Cool,0.1,10.0,-15.0,10.0,5.0,-5.0,5.0,10.0,-5.0,-3,0,128,128,0,0,0,0,0
-Foggy Minimal,0.15,-10.0,-10.0,20.0,10.0,0.0,-10.0,0.0,-10.0,2,0,128,128,0,0,0,0,0
-Black & White Contrast,0.0,40.0,-10.0,10.0,15.0,-20.0,15.0,0.0,-100.0,0,0,128,128,0,0,0,0,0
-Custom Warm + Contrast + Dehaze,0.1,30.0,-10.0,10.0,0.0,-10.0,10.0,10.0,0.0,8,15,128,128,0,0,0,0,0 
+preset_name,exposure,contrast,highlights,shadows,whites,blacks,clarity,vibrance,saturation,temperature,tint,curve_midpoint,curve_midvalue,highlight_hue,highlight_saturation,shadow_hue,shadow_saturation,split_toning_balance,color_adjustments
+Cinematic Teal & Orange,0.0,30,-20,20,10,-25,15,20,-5,-100,10,128,128,0,0,0,0,0,"Orange:+10, Yellow:-10, Green:-20, Blue:+20"
+Moody Forest,-0.15,20,-30,30,0,-40,20,10,-10,-100,5,128,128,0,0,0,0,0,"Green:-30, Yellow:-20"
+Urban Grit,-0.1,35,-20,10,15,-30,30,-10,-20,-100,0,128,128,0,0,0,0,0,"Orange:0, Yellow:-10, Green:-20"
+Golden Hour Glow,0.25,20,-30,20,10,-10,10,25,10,-100,10,128,128,0,0,0,0,0,"Orange:+20, Yellow:+20"
+Film Matte Fade,0.0,-10,-20,20,-10,20,0,5,-5,-100,0,128,128,0,0,0,0,0,"Orange:-10, Yellow:-10"
+Pastel Pop,0.1,-5,-10,30,5,-5,-5,10,5,-100,5,128,128,0,0,0,0,0,"Orange:+5, Yellow:+5, Green:+10"
+Vintage Sepia,0.0,10,-10,10,0,-20,5,5,-10,-100,20,128,128,0,0,0,0,0,"Orange:+10, Yellow:+20"
+Retro 90s Camcorder,-0.1,0,-15,20,-10,10,5,-5,-10,-100,-10,128,128,0,0,0,0,0,"Blue:+30, Aqua:+20"
+Soft Skin Portrait,0.1,5,-10,10,10,-10,-15,15,5,-100,5,128,128,0,0,0,0,0,"Orange:-10, Yellow:-10"
+Vibrant Boost,0.2,15,-10,15,10,-15,10,30,15,-100,10,128,128,0,0,0,0,0,"Green:+20, Blue:+20"
+Clean Light Airy,0.5,-5,-10,20,20,-10,0,10,5,-100,10,128,128,0,0,0,0,0,"Yellow:+10, Orange:+10"
+Earth Tones,-0.05,10,-10,10,-5,-10,5,5,-5,-100,5,128,128,0,0,0,0,0,"Green:-20, Yellow:-10"
+Coastal Cool,0.1,10,-15,10,5,-5,5,10,-5,-100,0,128,128,0,0,0,0,0,"Blue:-10, Aqua:+10"
+Foggy Minimal,0.15,-10,-10,20,10,0,-10,0,-10,-100,0,128,128,0,0,0,0,0,"All:-10"
+Black & White Contrast,0.0,40,-10,10,15,-20,15,0,-100,-100,0,128,128,0,0,0,0,0,"None"
+Custom Warm + Contrast + Dehaze,0.1,30,-10,10,0,-10,10,10,0,-100,15,128,128,0,0,0,0,0,"None" 
