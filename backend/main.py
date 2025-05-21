@@ -181,7 +181,9 @@ def create_xmp_file(preset_data: dict, xmp_filename: str) -> str:
     # Create the RDF element
     rdf = ET.SubElement(root, "rdf:RDF", {
         "xmlns:rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-        "xmlns:crs": "http://ns.adobe.com/camera-raw-settings/1.0/"
+        "xmlns:crs": "http://ns.adobe.com/camera-raw-settings/1.0/",
+        "xmlns:xmp": "http://ns.adobe.com/xap/1.0/",
+        "xmlns:tiff": "http://ns.adobe.com/tiff/1.0/"
     })
     
     # Create the Description element with Lightroom expected tags
@@ -195,10 +197,15 @@ def create_xmp_file(preset_data: dict, xmp_filename: str) -> str:
         "crs:Group": "User Presets",
         "crs:Name": f"Preset_{xmp_filename}",
         "crs:Version": "13.0",
-        "crs:ProcessVersion": "11.0"
+        "crs:ProcessVersion": "11.0",
+        "crs:WhiteBalance": "As Shot",
+        "crs:ConvertToGrayscale": "False",
+        "crs:EnableColorAdjustments": "True",
+        "crs:EnableSplitToning": "True",
+        "crs:EnableCurve": "True"
     })
 
-    # Map to Lightroom's expected tags
+    # Map to Lightroom's expected tags for basic adjustments
     basic = preset_data["Basic"]
     desc.set("crs:Exposure2012", str(basic["Exposure"]))
     desc.set("crs:Contrast2012", str(basic["Contrast"]))
@@ -212,11 +219,27 @@ def create_xmp_file(preset_data: dict, xmp_filename: str) -> str:
     desc.set("crs:Temperature", str(basic["Temperature"]))
     desc.set("crs:Tint", str(basic["Tint"]))
 
-    # Add color adjustments if present
+    # Add tone curve settings
+    curve = preset_data["ToneCurve"]
+    if curve["Enabled"]:
+        points = curve["Points"]
+        desc.set("crs:ToneCurveName2012", "Custom")
+        desc.set("crs:ToneCurve2012", ",".join([f"{p[0]},{p[1]}" for p in points]))
+
+    # Add split toning settings
+    split = preset_data["SplitToning"]
+    if split["Enabled"]:
+        desc.set("crs:SplitToningHighlightHue", str(split["HighlightHue"]))
+        desc.set("crs:SplitToningHighlightSaturation", str(split["HighlightSaturation"]))
+        desc.set("crs:SplitToningShadowHue", str(split["ShadowHue"]))
+        desc.set("crs:SplitToningShadowSaturation", str(split["ShadowSaturation"]))
+        desc.set("crs:SplitToningBalance", str(split["Balance"]))
+
+    # Add color adjustments
     if "ColorAdjustments" in preset_data and preset_data["ColorAdjustments"]["Enabled"]:
         color_adjustments = preset_data["ColorAdjustments"]["Adjustments"]
         if color_adjustments != "None":
-            # Parse color adjustments string and set HSL values
+            # Parse color adjustments string
             adjustments = color_adjustments.split(", ")
             for adjustment in adjustments:
                 if ":" in adjustment:
@@ -225,9 +248,81 @@ def create_xmp_file(preset_data: dict, xmp_filename: str) -> str:
                         # Apply to all colors
                         for c in ["Red", "Orange", "Yellow", "Green", "Aqua", "Blue", "Purple", "Magenta"]:
                             desc.set(f"crs:Hue{c}", value)
+                            desc.set(f"crs:Saturation{c}", value)
+                    elif color in ["Pastel", "Clean", "Warm glow", "Neon Blue/Purple"]:
+                        # Handle special style adjustments
+                        if color == "Pastel":
+                            desc.set("crs:HueRed", "0")
+                            desc.set("crs:SaturationRed", "-20")
+                            desc.set("crs:HueOrange", "0")
+                            desc.set("crs:SaturationOrange", "-20")
+                            desc.set("crs:HueYellow", "0")
+                            desc.set("crs:SaturationYellow", "-20")
+                            desc.set("crs:HueGreen", "0")
+                            desc.set("crs:SaturationGreen", "-20")
+                            desc.set("crs:HueAqua", "0")
+                            desc.set("crs:SaturationAqua", "-20")
+                            desc.set("crs:HueBlue", "0")
+                            desc.set("crs:SaturationBlue", "-20")
+                            desc.set("crs:HuePurple", "0")
+                            desc.set("crs:SaturationPurple", "-20")
+                            desc.set("crs:HueMagenta", "0")
+                            desc.set("crs:SaturationMagenta", "-20")
+                        elif color == "Clean":
+                            desc.set("crs:HueRed", "0")
+                            desc.set("crs:SaturationRed", "10")
+                            desc.set("crs:HueOrange", "0")
+                            desc.set("crs:SaturationOrange", "10")
+                            desc.set("crs:HueYellow", "0")
+                            desc.set("crs:SaturationYellow", "10")
+                            desc.set("crs:HueGreen", "0")
+                            desc.set("crs:SaturationGreen", "10")
+                            desc.set("crs:HueAqua", "0")
+                            desc.set("crs:SaturationAqua", "10")
+                            desc.set("crs:HueBlue", "0")
+                            desc.set("crs:SaturationBlue", "10")
+                            desc.set("crs:HuePurple", "0")
+                            desc.set("crs:SaturationPurple", "10")
+                            desc.set("crs:HueMagenta", "0")
+                            desc.set("crs:SaturationMagenta", "10")
+                        elif color == "Warm glow":
+                            desc.set("crs:HueRed", "5")
+                            desc.set("crs:SaturationRed", "15")
+                            desc.set("crs:HueOrange", "5")
+                            desc.set("crs:SaturationOrange", "15")
+                            desc.set("crs:HueYellow", "5")
+                            desc.set("crs:SaturationYellow", "15")
+                            desc.set("crs:HueGreen", "0")
+                            desc.set("crs:SaturationGreen", "0")
+                            desc.set("crs:HueAqua", "0")
+                            desc.set("crs:SaturationAqua", "0")
+                            desc.set("crs:HueBlue", "0")
+                            desc.set("crs:SaturationBlue", "0")
+                            desc.set("crs:HuePurple", "0")
+                            desc.set("crs:SaturationPurple", "0")
+                            desc.set("crs:HueMagenta", "0")
+                            desc.set("crs:SaturationMagenta", "0")
+                        elif color == "Neon Blue/Purple":
+                            desc.set("crs:HueRed", "0")
+                            desc.set("crs:SaturationRed", "0")
+                            desc.set("crs:HueOrange", "0")
+                            desc.set("crs:SaturationOrange", "0")
+                            desc.set("crs:HueYellow", "0")
+                            desc.set("crs:SaturationYellow", "0")
+                            desc.set("crs:HueGreen", "0")
+                            desc.set("crs:SaturationGreen", "0")
+                            desc.set("crs:HueAqua", "0")
+                            desc.set("crs:SaturationAqua", "30")
+                            desc.set("crs:HueBlue", "0")
+                            desc.set("crs:SaturationBlue", "30")
+                            desc.set("crs:HuePurple", "0")
+                            desc.set("crs:SaturationPurple", "30")
+                            desc.set("crs:HueMagenta", "0")
+                            desc.set("crs:SaturationMagenta", "30")
                     else:
                         # Apply to specific color
                         desc.set(f"crs:Hue{color}", value)
+                        desc.set(f"crs:Saturation{color}", value)
 
     # Debug print the XML string
     xml_str = minidom.parseString(ET.tostring(root)).toprettyxml(indent="  ")
