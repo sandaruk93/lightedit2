@@ -166,9 +166,16 @@ def generate_xmp_preset(style_description: str) -> dict:
     return preset
 
 def slugify(text: str) -> str:
+    """Convert text to a URL-friendly slug."""
+    # Convert to lowercase
     text = text.lower()
+    # Replace spaces and special characters with hyphens
     text = re.sub(r'[^a-z0-9]+', '-', text)
-    return text.strip('-')
+    # Remove leading/trailing hyphens
+    text = text.strip('-')
+    # Remove duplicate hyphens
+    text = re.sub(r'-+', '-', text)
+    return text
 
 def create_xmp_file(preset_data: dict, xmp_filename: str) -> str:
     # Create the root element with dc namespace
@@ -186,6 +193,10 @@ def create_xmp_file(preset_data: dict, xmp_filename: str) -> str:
         "xmlns:tiff": "http://ns.adobe.com/tiff/1.0/"
     })
     
+    # Generate a unique preset name
+    preset_name = xmp_filename.replace('.xmp', '')
+    preset_slug = slugify(preset_name)
+    
     # Create the Description element with Lightroom expected tags
     desc = ET.SubElement(rdf, "rdf:Description", {
         "rdf:about": "",
@@ -195,7 +206,7 @@ def create_xmp_file(preset_data: dict, xmp_filename: str) -> str:
         "crs:SupportsAmount": "False",
         "crs:RequiresRGBTables": "False",
         "crs:Group": "User Presets",
-        "crs:Name": f"Preset_{xmp_filename}",
+        "crs:Name": preset_slug,
         "crs:Version": "13.0",
         "crs:ProcessVersion": "11.0",
         "crs:WhiteBalance": "Custom",
@@ -357,7 +368,7 @@ async def generate_preset(
         # Prepare XMP file name
         original_name = os.path.splitext(file.filename)[0]
         preset_slug = slugify(style_description)
-        xmp_filename = f"{original_name}-preset-{preset_slug}.xmp"
+        xmp_filename = f"{preset_slug}.xmp"
         
         # Create XMP file
         xmp_path = create_xmp_file(preset_data, xmp_filename)
