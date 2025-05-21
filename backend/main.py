@@ -198,7 +198,7 @@ def create_xmp_file(preset_data: dict, xmp_filename: str) -> str:
         "crs:Name": f"Preset_{xmp_filename}",
         "crs:Version": "13.0",
         "crs:ProcessVersion": "11.0",
-        "crs:WhiteBalance": "As Shot",
+        "crs:WhiteBalance": "Custom",
         "crs:ConvertToGrayscale": "False",
         "crs:EnableColorAdjustments": "True",
         "crs:EnableSplitToning": "True",
@@ -216,7 +216,10 @@ def create_xmp_file(preset_data: dict, xmp_filename: str) -> str:
     desc.set("crs:Clarity2012", str(basic["Clarity"]))
     desc.set("crs:Vibrance", str(basic["Vibrance"]))
     desc.set("crs:Saturation", str(basic["Saturation"]))
-    desc.set("crs:Temperature", str(basic["Temperature"]))
+    
+    # Set temperature in Kelvin
+    temp_kelvin = basic["Temperature"]
+    desc.set("crs:Temperature", str(temp_kelvin))
     desc.set("crs:Tint", str(basic["Tint"]))
 
     # Add tone curve settings
