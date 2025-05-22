@@ -1,399 +1,248 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
-  TextField,
   Button,
-  Paper,
+  TextField,
   Typography,
+  Paper,
   CircularProgress,
-  Chip,
-  Stack,
   Alert,
-  Snackbar,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
-  FormControl,
-  FormLabel,
 } from '@mui/material';
-import { CloudUpload as CloudUploadIcon, AutoFixHigh as PresetIcon, Download as DownloadIcon } from '@mui/icons-material';
-import axios, { AxiosError } from 'axios';
+import { styled } from '@mui/material/styles';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import LightbulbIcon from '@mui/icons-material/Lightbulb';
 import ResultScreen from './ResultScreen';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
-interface StyleUploaderProps {}
+const UploadContainer = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(4),
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: theme.spacing(3),
+  maxWidth: 600,
+  margin: '0 auto',
+  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  backdropFilter: 'blur(10px)',
+  borderRadius: theme.spacing(2),
+  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+}));
 
-interface PresetResult {
-  preset_id: string;
-  style_description: string;
-  xmp_url: string;
-  preview_url: string;
-}
+const UploadBox = styled('label')(({ theme }) => ({
+  width: '100%',
+  height: 200,
+  border: `2px dashed ${theme.palette.primary.main}`,
+  borderRadius: theme.spacing(2),
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: theme.spacing(2),
+  cursor: 'pointer',
+  transition: 'all 0.3s ease',
+  backgroundColor: 'rgba(33, 150, 243, 0.05)',
+  '&:hover': {
+    backgroundColor: 'rgba(33, 150, 243, 0.1)',
+    borderColor: theme.palette.primary.dark,
+  },
+}));
 
-interface ErrorResponse {
-  detail: string;
-}
+const StyledButton = styled(Button)(({ theme }) => ({
+  padding: theme.spacing(1.5, 4),
+  borderRadius: theme.spacing(2),
+  textTransform: 'none',
+  fontSize: '1.1rem',
+  fontWeight: 600,
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+  },
+}));
 
-interface ErrorState {
-  message: string;
-  details?: string;
-}
-
-const EXAMPLE_PROMPTS = [
-  'Cinematic moody look',
-  'Vintage film grain',
-  'High contrast dramatic',
-  'Soft dreamy aesthetic',
-  'Film noir style',
-];
-
-const StyleUploader: React.FC<StyleUploaderProps> = () => {
-  const [file, setFile] = useState<File | null>(null);
+const StyleUploader: React.FC = () => {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [styleDescription, setStyleDescription] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<ErrorState | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [result, setResult] = useState<PresetResult | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [showSnackbar, setShowSnackbar] = useState(false);
-  const [presetOptions, setPresetOptions] = useState<string[]>([]);
-  const [selectedPreset, setSelectedPreset] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<{
+    presetId: string;
+    styleDescription: string;
+    xmpUrl: string;
+    previewUrl: string;
+  } | null>(null);
+  const [recommendedPreset, setRecommendedPreset] = useState<string | null>(null);
+  const [confidenceScore, setConfidenceScore] = useState<number | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = event.target.files?.[0];
-    if (selectedFile) {
-      // Validate file type
-      if (!selectedFile.type.startsWith('image/')) {
-        setError({
-          message: 'Invalid file type',
-          details: 'Please upload an image file (JPG, PNG, or GIF)'
-        });
-        return;
-      }
-      // Validate file size (max 10MB)
-      if (selectedFile.size > 10 * 1024 * 1024) {
-        setError({
-          message: 'File too large',
-          details: 'Please upload an image smaller than 10MB'
-        });
-        return;
-      }
-      setFile(selectedFile);
-      setError(null);
-      setResult(null);
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('Please upload an image file');
+      return;
     }
-  };
 
-  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(false);
-  }, []);
-
-  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(false);
-    
-    const droppedFile = e.dataTransfer.files?.[0];
-    if (droppedFile) {
-      if (!droppedFile.type.startsWith('image/')) {
-        setError({
-          message: 'Invalid file type',
-          details: 'Please upload an image file (JPG, PNG, or GIF)'
-        });
-        return;
-      }
-      if (droppedFile.size > 10 * 1024 * 1024) {
-        setError({
-          message: 'File too large',
-          details: 'Please upload an image smaller than 10MB'
-        });
-        return;
-      }
-      setFile(droppedFile);
-      setError(null);
-      setResult(null);
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setError('File size should be less than 10MB');
+      return;
     }
-  }, []);
 
-  // Fetch preset options from backend CSV (or hardcode for now)
-  useEffect(() => {
-    // For now, hardcode the list (should be fetched from backend ideally)
-    setPresetOptions([
-      'Cinematic Teal & Orange',
-      'Moody Forest',
-      'Urban Grit',
-      'Golden Hour Glow',
-      'Film Matte Fade',
-      'Pastel Pop',
-      'Vintage Sepia',
-      'Retro 90s Camcorder',
-      'Soft Skin Portrait',
-      'Vibrant Boost',
-      'Clean Light Airy',
-      'Earth Tones',
-      'Coastal Cool',
-      'Foggy Minimal',
-      'Black & White Contrast',
-      'Custom Warm + Contrast + Dehaze',
-    ]);
-  }, []);
-
-  const handlePresetChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedPreset(event.target.value);
+    setSelectedFile(file);
     setError(null);
-  };
 
-  const handleSubmit = async () => {
-    if (!file) {
-      setError({
-        message: 'No file selected',
-        details: 'Please select an image to process'
-      });
-      return;
-    }
-    if (!selectedPreset) {
-      setError({
-        message: 'No preset selected',
-        details: 'Please select a preset style to continue.'
-      });
-      return;
-    }
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('style_description', selectedPreset);
-
+    // Analyze image and get preset recommendation
+    setIsAnalyzing(true);
     try {
-      setUploading(true);
-      setError(null);
-      setIsProcessing(true);
-      
-      const response = await axios.post<PresetResult>(`${API_URL}/generate_preset/`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`${API_URL}/recommend_preset/`, {
+        method: 'POST',
+        body: formData,
       });
 
-      setResult(response.data);
-      setShowSnackbar(true);
-      
-      // Don't reset form immediately
-      setSelectedPreset('');
+      if (!response.ok) {
+        throw new Error('Failed to analyze image');
+      }
+
+      const data = await response.json();
+      setRecommendedPreset(data.preset);
+      setConfidenceScore(data.confidence_score);
     } catch (error) {
-      const axiosError = error as AxiosError<ErrorResponse>;
-      setError({
-        message: 'Failed to generate preset',
-        details: axiosError.response?.data?.detail || 'Please try again'
-      });
+      console.error('Error analyzing image:', error);
     } finally {
-      setUploading(false);
-      setIsProcessing(false);
+      setIsAnalyzing(false);
     }
   };
 
-  const handleDownloadXMP = async () => {
-    if (!result) return;
-    
+  const handleUpload = async () => {
+    if (!selectedFile || !styleDescription) {
+      setError('Please select a file and enter a style description');
+      return;
+    }
+
+    setIsUploading(true);
+    setError(null);
+
     try {
-      const response = await axios.get(`${API_URL}${result.xmp_url}`, {
-        responseType: 'blob',
-      });
-      
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `preset_${result.preset_id}.xmp`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setShowSnackbar(true);
-    } catch (error) {
-      setError({
-        message: 'Download failed',
-        details: 'Failed to download XMP file. Please try again.'
-      });
-    }
-  };
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('style_description', styleDescription);
 
-  const handleDownloadEdited = async () => {
-    if (!result) return;
-    
-    try {
-      const response = await axios.get(`${API_URL}${result.preview_url}`, {
-        responseType: 'blob',
+      const response = await fetch(`${API_URL}/generate_preset/`, {
+        method: 'POST',
+        body: formData,
       });
-      
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `edited_${result.preset_id}.jpg`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setShowSnackbar(true);
-    } catch (error) {
-      setError({
-        message: 'Download failed',
-        details: 'Failed to download edited image. Please try again.'
-      });
-    }
-  };
 
-  const handleCloseSnackbar = () => {
-    setShowSnackbar(false);
+      if (!response.ok) {
+        throw new Error('Failed to generate preset');
+      }
+
+      const data = await response.json();
+      setResult({
+        presetId: data.preset_id,
+        styleDescription: data.style_description,
+        xmpUrl: `${API_URL}${data.xmp_url}`,
+        previewUrl: `${API_URL}${data.preview_url}`,
+      });
+    } catch (error) {
+      setError('Failed to generate preset. Please try again.');
+      console.error('Error:', error);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleStartOver = () => {
-    setFile(null);
+    setSelectedFile(null);
+    setStyleDescription('');
     setResult(null);
-    setSelectedPreset('');
     setError(null);
+    setRecommendedPreset(null);
+    setConfidenceScore(null);
   };
 
+  if (result) {
+    return (
+      <ResultScreen
+        presetId={result.presetId}
+        styleDescription={result.styleDescription}
+        xmpUrl={result.xmpUrl}
+        previewUrl={result.previewUrl}
+        onStartOver={handleStartOver}
+      />
+    );
+  }
+
   return (
-    <>
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Upload your image
+    <UploadContainer elevation={3}>
+      <Typography variant="h4" component="h1" gutterBottom align="center" sx={{ fontWeight: 600 }}>
+        Create Lightroom Preset
+      </Typography>
+
+      <UploadBox htmlFor="file-upload">
+        <input
+          id="file-upload"
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          style={{ display: 'none' }}
+        />
+        <CloudUploadIcon sx={{ fontSize: 48, color: 'primary.main' }} />
+        <Typography variant="h6" color="primary">
+          {selectedFile ? selectedFile.name : 'Click to upload image'}
         </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Supported formats: JPG, PNG, HEIC
+        </Typography>
+      </UploadBox>
 
-        <Box
-          sx={{
-            mb: 3,
-            p: 3,
-            border: '2px dashed',
-            borderColor: isDragging ? 'primary.main' : 'grey.300',
-            borderRadius: 1,
-            backgroundColor: isDragging ? 'action.hover' : 'background.paper',
-            transition: 'all 0.2s ease',
-            cursor: 'pointer',
-            opacity: uploading ? 0.7 : 1,
-            pointerEvents: uploading ? 'none' : 'auto',
-          }}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={() => document.getElementById('style-file-upload')?.click()}
+      <TextField
+        fullWidth
+        label="Style Description"
+        value={styleDescription}
+        onChange={(e) => setStyleDescription(e.target.value)}
+        placeholder="e.g., Moody Forest, Urban Grit, Golden Hour"
+        variant="outlined"
+        sx={{ mt: 2 }}
+      />
+
+      {recommendedPreset && (
+        <Alert 
+          severity="info" 
+          icon={<LightbulbIcon />}
+          sx={{ width: '100%', mt: 2 }}
         >
-          <input
-            type="file"
-            id="style-file-upload"
-            style={{ display: 'none' }}
-            onChange={handleFileChange}
-            accept="image/*"
-            disabled={uploading}
-          />
-          <Box sx={{ textAlign: 'center' }}>
-            <CloudUploadIcon sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} />
-            <Typography variant="body1" gutterBottom>
-              {file ? file.name : 'Drag and drop an image here, or click to select'}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {file ? 'Click to change image' : 'Supports: JPG, PNG, GIF (max 10MB)'}
-            </Typography>
-          </Box>
-        </Box>
+          Recommended preset: <strong>{recommendedPreset}</strong>
+          {confidenceScore && ` (${Math.round(confidenceScore * 100)}% confidence)`}
+        </Alert>
+      )}
 
-        {/* Show uploaded image preview as soon as a file is selected, before prompts */}
-        {file && (
-          <Paper sx={{ p: 2, mb: 3 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Uploaded Image Preview
-            </Typography>
-            <Box
-              component="img"
-              src={URL.createObjectURL(file)}
-              alt="Uploaded"
-              sx={{ width: '100%', height: 'auto', borderRadius: 1 }}
-            />
-          </Paper>
-        )}
+      {error && (
+        <Alert severity="error" sx={{ width: '100%', mt: 2 }}>
+          {error}
+        </Alert>
+      )}
 
-        {/* Preset selection as Chips */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" gutterBottom>
-            Select a Preset Style
-          </Typography>
-          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-            {presetOptions.map((preset) => (
-              <Chip
-                key={preset}
-                label={preset}
-                clickable
-                color={selectedPreset === preset ? 'primary' : 'default'}
-                variant={selectedPreset === preset ? 'filled' : 'outlined'}
-                onClick={() => {
-                  setSelectedPreset(preset);
-                  setError(null);
-                }}
-                disabled={uploading}
-                sx={{ m: 0.5, fontWeight: selectedPreset === preset ? 'bold' : 'normal' }}
-              />
-            ))}
-          </Stack>
-        </Box>
-
-        {/* Surprise Me Button */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
-          <Button
-            variant="contained"
-            startIcon={<PresetIcon />}
-            onClick={() => {
-              if (presetOptions.length > 0) {
-                const random = presetOptions[Math.floor(Math.random() * presetOptions.length)];
-                setSelectedPreset(random);
-                setError(null);
-              }
-            }}
-            disabled={uploading || presetOptions.length === 0}
-            sx={{
-              background: 'linear-gradient(90deg, #ff9800 0%, #ff5722 100%)',
-              color: 'white',
-              fontWeight: 'bold',
-              borderRadius: 3,
-              px: 4,
-              py: 1.5,
-              fontSize: '1.1rem',
-              boxShadow: 3,
-              textTransform: 'uppercase',
-              letterSpacing: 1,
-              transition: 'all 0.2s',
-              '&:hover': {
-                background: 'linear-gradient(90deg, #ff5722 0%, #ff9800 100%)',
-                boxShadow: 6,
-                transform: 'scale(1.05)',
-              },
-            }}
-          >
-            Surprise Me!
-          </Button>
-        </Box>
-
-        {error && (
-          <Alert 
-            severity="error" 
-            sx={{ mb: 2 }}
-            onClose={() => setError(null)}
-          >
-            <Typography variant="subtitle2">{error.message}</Typography>
-            {error.details && (
-              <Typography variant="body2">{error.details}</Typography>
-            )}
-          </Alert>
-        )}
-
-        <Button
+      <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+        <StyledButton
           variant="contained"
-          onClick={handleSubmit}
-          disabled={uploading || !file || !selectedPreset}
-          fullWidth
+          color="primary"
+          onClick={handleUpload}
+          disabled={!selectedFile || !styleDescription || isUploading}
+          sx={{
+            backgroundColor: '#2196f3',
+            '&:hover': {
+              backgroundColor: '#1976d2',
+            },
+          }}
         >
-          {uploading ? (
+          {isUploading ? (
             <>
               <CircularProgress size={24} sx={{ mr: 1 }} />
               Generating Preset...
@@ -401,41 +250,9 @@ const StyleUploader: React.FC<StyleUploaderProps> = () => {
           ) : (
             'Generate Preset'
           )}
-        </Button>
-      </Paper>
-
-      {/* Show XMP download and start over only after result is available */}
-      {result && (
-        <Paper sx={{ p: 2, mb: 3 }}>
-          <Typography variant="subtitle2" gutterBottom>
-            Preset Generated!
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-            <Button
-              variant="contained"
-              startIcon={<DownloadIcon />}
-              onClick={handleDownloadXMP}
-            >
-              Download XMP
-            </Button>
-            <Button
-              variant="outlined"
-              onClick={handleStartOver}
-            >
-              Start Over
-            </Button>
-          </Box>
-        </Paper>
-      )}
-      
-
-      <Snackbar
-        open={showSnackbar}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        message="Operation completed successfully"
-      />
-    </>
+        </StyledButton>
+      </Box>
+    </UploadContainer>
   );
 };
 

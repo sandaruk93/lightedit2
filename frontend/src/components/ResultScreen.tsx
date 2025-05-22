@@ -1,72 +1,109 @@
-import React from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Grid,
-} from '@mui/material';
-import { Download as DownloadIcon } from '@mui/icons-material';
+import React, { useEffect } from 'react';
+import { Box, Button, Typography, Paper, CircularProgress } from '@mui/material';
+import { styled } from '@mui/material/styles';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
+
+const ResultContainer = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(4),
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: theme.spacing(3),
+  maxWidth: 600,
+  margin: '0 auto',
+  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  backdropFilter: 'blur(10px)',
+  borderRadius: theme.spacing(2),
+  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+}));
+
+const PreviewImage = styled('img')({
+  width: '100%',
+  maxHeight: 400,
+  objectFit: 'contain',
+  borderRadius: 8,
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+});
+
+const StyledButton = styled(Button)(({ theme }) => ({
+  padding: theme.spacing(1.5, 4),
+  borderRadius: theme.spacing(2),
+  textTransform: 'none',
+  fontSize: '1.1rem',
+  fontWeight: 600,
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+  },
+}));
 
 interface ResultScreenProps {
-  originalImage: string;
+  presetId: string;
   styleDescription: string;
-  onDownloadXMP: () => void;
+  xmpUrl: string;
+  previewUrl: string;
   onStartOver: () => void;
 }
 
 const ResultScreen: React.FC<ResultScreenProps> = ({
-  originalImage,
+  presetId,
   styleDescription,
-  onDownloadXMP,
+  xmpUrl,
+  previewUrl,
   onStartOver,
 }) => {
+  useEffect(() => {
+    // Automatically download the preset file when the component mounts
+    const downloadPreset = async () => {
+      try {
+        const response = await fetch(xmpUrl);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${styleDescription.toLowerCase().replace(/\s+/g, '-')}.xmp`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } catch (error) {
+        console.error('Error downloading preset:', error);
+      }
+    };
+
+    downloadPreset();
+  }, [xmpUrl, styleDescription]);
+
   return (
-    <Paper sx={{ p: 3, mb: 3 }}>
-      <Typography variant="h6" gutterBottom>
-        Uploaded Image Preview
+    <ResultContainer elevation={3}>
+      <Typography variant="h4" component="h2" gutterBottom align="center" sx={{ fontWeight: 600 }}>
+        Preset Generated Successfully!
+      </Typography>
+      
+      <Typography variant="body1" color="text.secondary" align="center" sx={{ mb: 2 }}>
+        Your "{styleDescription}" preset has been created and downloaded automatically.
       </Typography>
 
-      <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-        Style: {styleDescription}
-      </Typography>
+      <PreviewImage src={previewUrl} alt="Preview" />
 
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12}>
-          <Paper variant="outlined" sx={{ p: 2 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Uploaded Image
-            </Typography>
-            <Box
-              component="img"
-              src={originalImage}
-              alt="Uploaded"
-              sx={{
-                width: '100%',
-                height: 'auto',
-                borderRadius: 1,
-              }}
-            />
-          </Paper>
-        </Grid>
-      </Grid>
-
-      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-        <Button
+      <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+        <StyledButton
           variant="contained"
-          startIcon={<DownloadIcon />}
-          onClick={onDownloadXMP}
-        >
-          Download XMP
-        </Button>
-        <Button
-          variant="outlined"
+          color="primary"
           onClick={onStartOver}
+          startIcon={<RestartAltIcon />}
+          sx={{
+            backgroundColor: '#2196f3',
+            '&:hover': {
+              backgroundColor: '#1976d2',
+            },
+          }}
         >
           Start Over
-        </Button>
+        </StyledButton>
       </Box>
-    </Paper>
+    </ResultContainer>
   );
 };
 
